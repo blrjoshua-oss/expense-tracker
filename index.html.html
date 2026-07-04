@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Expense Tracker</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #121212;
+  color: white;
+  text-align: center;
+}
+
+.container {
+  border: 3px solid #00ffcc;
+  padding: 20px;
+  width: 520px;
+  margin: auto;
+  border-radius: 10px;
+  position: relative;
+}
+
+.date-picker {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  margin: 5px 0;
+}
+
+input {
+  width: 100px;
+  padding: 5px;
+  border-radius: 5px;
+  border: none;
+}
+
+button {
+  margin: 10px;
+  padding: 10px;
+  background: #00ffcc;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <h2>💰 Expense Tracker</h2>
+
+  <input type="date" id="datePicker" class="date-picker">
+
+  <h3>Annual Income ₹ <input type="number" id="income"></h3>
+
+  <div id="expenses"></div>
+
+  <button onclick="saveData()">Save Daily Expense</button>
+  <button onclick="resetDay()">Reset Day</button>
+
+  <h3>Daily Total: ₹ <span id="dailyTotal">0</span></h3>
+  <h3>Monthly Total: ₹ <span id="monthlyTotal">0</span></h3>
+  <h3>Remaining Balance: ₹ <span id="balance">0</span></h3>
+</div>
+
+<script>
+const categories = [
+"Petrol","Shopping","Car Wash","Vegetables","Laundry","Food","Travel","Bills","Entertainment",
+"Medical","Pharmacy","Car Tire","Purchasing","Water Charge","Electricity Bill","Cylinder","Rent","Stationery",
+"Cosmetics","Fancy Store","Beauty Parlor"
+];
+
+const container = document.getElementById("expenses");
+const datePicker = document.getElementById("datePicker");
+const incomeInput = document.getElementById("income");
+
+// SET TODAY
+let today = new Date().toISOString().split("T")[0];
+datePicker.value = today;
+
+// CREATE INPUTS
+categories.forEach(cat => {
+  let div = document.createElement("div");
+  div.className = "row";
+  div.innerHTML = `<label>${cat}</label>
+                   <input type="number" id="${cat}" value="0">`;
+  container.appendChild(div);
+});
+
+// LOAD INCOME
+function loadIncome() {
+  let income = localStorage.getItem("annualIncome") || 0;
+  incomeInput.value = income;
+}
+
+// SAVE INCOME
+incomeInput.addEventListener("input", () => {
+  localStorage.setItem("annualIncome", incomeInput.value);
+  calculateBalance();
+});
+
+// LOAD DATA
+function loadData() {
+  let date = datePicker.value;
+  let data = JSON.parse(localStorage.getItem(date)) || {};
+
+  let total = 0;
+
+  categories.forEach(cat => {
+    let val = data[cat] || 0;
+    document.getElementById(cat).value = val;
+    total += val;
+  });
+
+  document.getElementById("dailyTotal").innerText = total;
+  calculateMonthly();
+}
+
+// SAVE DATA
+function saveData() {
+  let date = datePicker.value;
+  let data = {};
+  let total = 0;
+
+  categories.forEach(cat => {
+    let val = parseFloat(document.getElementById(cat).value) || 0;
+    data[cat] = val;
+    total += val;
+  });
+
+  localStorage.setItem(date, JSON.stringify(data));
+
+  document.getElementById("dailyTotal").innerText = total;
+  calculateMonthly();
+}
+
+// MONTHLY TOTAL
+function calculateMonthly() {
+  let total = 0;
+
+  for (let key in localStorage) {
+    if (key.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      let data = JSON.parse(localStorage.getItem(key));
+
+      let dayTotal = 0;
+      categories.forEach(cat => {
+        dayTotal += data[cat] || 0;
+      });
+
+      total += dayTotal;
+    }
+  }
+
+  document.getElementById("monthlyTotal").innerText = total;
+  calculateBalance();
+}
+
+// BALANCE
+function calculateBalance() {
+  let income = parseFloat(incomeInput.value) || 0;
+  let expenses = parseFloat(document.getElementById("monthlyTotal").innerText) || 0;
+
+  document.getElementById("balance").innerText = income - expenses;
+}
+
+// RESET DAY
+function resetDay() {
+  let date = datePicker.value;
+  localStorage.removeItem(date);
+  loadData();
+}
+
+// DATE CHANGE
+datePicker.addEventListener("change", loadData);
+
+// INIT
+loadIncome();
+loadData();
+</script>
+
+</body>
+</html>
