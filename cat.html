@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Tracker</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: Arial;
+}
+
+/* 🔥 BACKGROUND IMAGE */
+body {
+  background: url('/mnt/data/trendy-geometric-blue-background-with-abstract-lines-banner-design-futuristic-dynamic-pattern-illustration-vector(1).jpg') no-repeat center center/cover;
+  min-height: 100vh;
+  color: white;
+}
+
+/* 🔥 GLASS CONTAINER (VISIBLE ON PHONE) */
+.container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
+  border-radius: 15px;
+
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(10px);
+
+  box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+/* TITLE */
+h2 {
+  text-align: center;
+  color: gold;
+  margin-bottom: 15px;
+}
+
+/* TOP INPUTS */
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 12px;
+  color: gold;
+  margin-bottom: 4px;
+}
+
+.input-group input {
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
+}
+
+/* EXPENSE GRID */
+.expenses {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px,1fr));
+  gap: 10px;
+}
+
+.card {
+  background: rgba(0,0,0,0.7);
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid gold;
+}
+
+.card label {
+  color: gold;
+  font-size: 12px;
+}
+
+.card input {
+  width: 100%;
+  margin-top: 5px;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+}
+
+/* BUTTONS */
+.buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+button {
+  flex: 1;
+  padding: 12px;
+  background: gold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+/* SUMMARY */
+.summary {
+  margin-top: 15px;
+  text-align: center;
+}
+
+.summary h3 {
+  margin: 5px 0;
+  color: gold;
+}
+
+/* 📱 MOBILE FIX */
+@media(max-width:600px){
+  .top { flex-direction: column; }
+
+  .container {
+    margin: 10px;
+    padding: 15px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>💰 Expense Tracker</h2>
+
+<div class="top">
+  <div class="input-group">
+    <label>💰 Monthly Income</label>
+    <input type="number" id="monthlyIncome" placeholder="Enter Monthly Income">
+  </div>
+
+  <div class="input-group">
+    <label>📅 Select Date</label>
+    <input type="date" id="date">
+  </div>
+</div>
+
+<div class="expenses" id="expenseContainer"></div>
+
+<div class="buttons">
+  <button id="saveBtn">💾 Save</button>
+  <button id="resetBtn">♻ Reset</button>
+</div>
+
+<div class="summary">
+  <h3>Daily Total: ₹ <span id="daily">0</span></h3>
+  <h3>Monthly Total: ₹ <span id="monthly">0</span></h3>
+  <h3>Balance: ₹ <span id="balance">0</span></h3>
+</div>
+
+</div>
+
+<script>
+(function(){
+
+const dateInput = document.getElementById("date");
+const incomeInput = document.getElementById("monthlyIncome");
+const container = document.getElementById("expenseContainer");
+
+const categories = [
+"Petrol","Shopping","Food","Bills","Rent","Medical","Entertainment",
+"Travel","Groceries","Electricity","Water","Internet"
+];
+
+dateInput.value = new Date().toISOString().split("T")[0];
+
+/* CREATE INPUTS */
+categories.forEach(cat => {
+  const div = document.createElement("div");
+  div.className = "card";
+  div.innerHTML = `
+    <label>${cat}</label>
+    <input type="number" id="${cat}" value="0" min="0">
+  `;
+  container.appendChild(div);
+});
+
+/* LOAD INCOME */
+function loadIncome(){
+  incomeInput.value = localStorage.getItem("monthlyIncome") || 0;
+}
+
+/* SAVE INCOME */
+incomeInput.addEventListener("input", function(){
+  localStorage.setItem("monthlyIncome", this.value || 0);
+  calculateBalance();
+});
+
+/* LOAD DATA */
+function loadData(){
+  const date = dateInput.value;
+  let data = JSON.parse(localStorage.getItem(date)) || {};
+
+  let total = 0;
+
+  categories.forEach(cat=>{
+    const val = Number(data[cat]) || 0;
+    document.getElementById(cat).value = val;
+    total += val;
+  });
+
+  document.getElementById("daily").innerText = total;
+  calculateMonthly();
+}
+
+/* SAVE DATA */
+function saveData(){
+  const date = dateInput.value;
+  let data = {};
+  let total = 0;
+
+  categories.forEach(cat=>{
+    const val = Number(document.getElementById(cat).value) || 0;
+    data[cat] = val;
+    total += val;
+  });
+
+  localStorage.setItem(date, JSON.stringify(data));
+  document.getElementById("daily").innerText = total;
+
+  calculateMonthly();
+}
+
+/* MONTHLY */
+function calculateMonthly(){
+  let total = 0;
+
+  Object.keys(localStorage).forEach(key=>{
+    if(/^\d{4}-\d{2}-\d{2}$/.test(key)){
+      const data = JSON.parse(localStorage.getItem(key)) || {};
+      categories.forEach(cat=>{
+        total += Number(data[cat]) || 0;
+      });
+    }
+  });
+
+  document.getElementById("monthly").innerText = total;
+  calculateBalance();
+}
+
+/* BALANCE */
+function calculateBalance(){
+  const income = Number(localStorage.getItem("monthlyIncome")) || 0;
+  const expenses = Number(document.getElementById("monthly").innerText) || 0;
+
+  document.getElementById("balance").innerText = (income - expenses).toFixed(2);
+}
+
+/* RESET */
+function resetDay(){
+  localStorage.removeItem(dateInput.value);
+  loadData();
+}
+
+document.getElementById("saveBtn").addEventListener("click", saveData);
+document.getElementById("resetBtn").addEventListener("click", resetDay);
+dateInput.addEventListener("change", loadData);
+
+loadIncome();
+loadData();
+
+})();
+</script>
+
+</body>
+</html>
